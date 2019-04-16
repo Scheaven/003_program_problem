@@ -15,52 +15,60 @@
 竖着切的时候保证每切一刀切好的部分的值都大于最小值min小于均值avg
 如果没有满足的情况则缩小区间，即增加min,或减小avg
 等区间缩小为小值大于大值时，则输出结果
-
-
 '''
 
-N, M = map(int, input().split())
-mat = [[int(c) for c in input().strip()] for i in range(N)]
 
-left = min([min(m) for m in mat])
-right = sum([sum(m) for m in mat]) // 16 + 1
-# sum grid from (x0,y0) to (x1,y1)
-sums_ = [[0] * (M + 1) for i in range(N + 1)]
-for i in range(1, N + 1):
-    for j in range(1, M + 1):
-        sums_[i][j] = sums_[i - 1][j] + sums_[i][j - 1] - sums_[i - 1][j - 1] + mat[i - 1][j - 1]
-
-
-def sum_grid(x0, y0, x1, y1, mat):
-    return sums_[x1][y1] + sums_[x0][y0] - sums_[x0][y1] - sums_[x1][y0]
+# 获取累加矩阵：新的矩阵中的每个元素为以该元素为右下角的子矩阵的所有元素的和即Y[i,j] = sum(mat[0:i,0:j]);
+def get_submat_sum(M, N, mat):
+    submat_sum = [[0]*(M + 1) for i in range(N + 1)]  # 初始化所有初始信息为0
+    for i in range(1, N + 1):
+        for j in range(1, M + 1):
+            # 计算公式D=C+B-A+a
+            submat_sum[i][j] = submat_sum[i][j-1] + submat_sum[i-1][j] - submat_sum[i-1][j-1] + mat[i-1][j-1]
+    return submat_sum
 
 
-def judge(mat, N, M, val):
-    for r1 in range(1, N - 2):
-        if sum_grid(0, 0, r1, M, mat) < 4 * val: continue
-        for r2 in range(r1 + 1, N - 1):
-            if sum_grid(r1, 0, r2, M, mat) < 4 * val: continue
-            for r3 in range(r2 + 1, N):
-                if sum_grid(r2, 0, r3, M, mat) < 4 * val: continue
-                if sum_grid(r3, 0, N, M, mat) < 4 * val: continue
-                start, count = 0, 0
-                for i in range(1, M + 1):
-                    if sum_grid(0, start, r1, i, mat) >= val \
-                            and sum_grid(r1, start, r2, i, mat) >= val \
-                            and sum_grid(r2, start, r3, i, mat) >= val \
-                            and sum_grid(r3, start, N, i, mat) >= val:
-                        start, count = i, count + 1
-                        if count == 4:
+# 计算所分配的区域内的数据信息和:mat之所以没有用是因为之前计算过了submat的和
+def sum_grid(x0, y0, x1, y1, mat_sum):
+    return mat_sum[x1][y1] - mat_sum[x1][y0] - mat_sum[x0][y1] + mat_sum[x0][y0]
+
+
+# 判断切割方式是否满足要求
+def sect_judge(submat_sum, N, M, val):
+    for row_seg1 in range(1, N - 2):
+        if sum_grid(0, 0, row_seg1, M, submat_sum) < 4*val: continue
+        for row_seg2 in range( row_seg1+1, N - 1):
+            if sum_grid(row_seg1, 0, row_seg2, M, submat_sum) < 4 * val:continue
+            for row_seg3 in range(row_seg2+1, N):
+                if sum_grid(row_seg2,0,row_seg3,M ,submat_sum) <4 * val:continue
+                if sum_grid(row_seg3,0,N, M, submat_sum) < 4 * val:continue
+                ######### 以上竖切割的四部分的和都符合要求######
+                # 在竖切分的基础上进行横向切分，确保每一部分都符合要求
+                col_seg,seg_count = 0,0
+                for i in range(1,M + 1):
+                    if sum_grid(0,col_seg,row_seg1,i,submat_sum) >= val \
+                            and sum_grid(row_seg1,col_seg,row_seg2,i,submat_sum) >= val \
+                            and sum_grid(row_seg2,col_seg,row_seg3,i,submat_sum) >= val \
+                            and sum_grid(row_seg3,col_seg,N,i,submat_sum) >= val:
+                        col_seg = i
+                        seg_count += 1
+                        if seg_count == 4:
                             return True
     return False
 
+if __name__ == '__main__':
+    N, M = map(int, input().split())
+    mat = [[int(a) for a in input().strip()] for i in range(N)]  # 将获得数据存储在矩阵之中
+    section_left = min([min(m) for m in mat])  # 即牛牛可能得到的最小值
+    section_right = sum([sum(m) for m in mat]) // 16 + 1  # 即牛牛可能得到的最大值
+    submat_sum = get_submat_sum(M, N, mat)
 
-while left < right:
-    mid = (left + right) // 2
-    state = judge(mat, N, M, mid)
-    if state:
-        left = mid + 1
-    else:
-        right = mid
-print(right - 1)
+    while section_left < section_right:
+        section_mid = (section_left + section_right) // 2
+        sect_state = sect_judge(submat_sum, N, M, section_mid)
+        if sect_state:
+            section_left = section_mid + 1
+        else:
+            section_right = section_mid
 
+    print(section_right-1)
