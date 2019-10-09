@@ -3,7 +3,7 @@
 # @Time    : 2019/10/9 11:01
 # @Author  : Scheaven
 # @File    :  001_rotary_matrix.py
-# @description:
+# @description:回旋矩阵，生成一个回旋矩阵，也就是围绕着中心点一圈一圈的排列的矩阵
 
 import numpy as np
 
